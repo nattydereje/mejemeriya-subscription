@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Lock } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { LeaderboardView } from './components/LeaderboardView';
 import { ReferralLander } from './components/ReferralLander';
@@ -12,6 +13,8 @@ import {
   getCompetitors,
   getSubmissions,
   registerCompetitor,
+  approveCompetitor,
+  deleteCompetitor,
   saveChannelConfig,
   submitReferralProof,
   updateSubmissionStatus,
@@ -51,8 +54,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRegisterCompetitor = (name: string, code: string, contact?: string) => {
-    const newComp = registerCompetitor(name, code, contact);
+  const handleRegisterCompetitor = (
+    name: string,
+    code: string,
+    contact?: string,
+    avatarUrl?: string,
+    gender?: 'male' | 'female' | 'other'
+  ) => {
+    const newComp = registerCompetitor(name, code, contact, avatarUrl, gender);
     setCompetitors(getCompetitors());
     setSelectedReferralCode(newComp.referralCode);
     return newComp;
@@ -91,6 +100,16 @@ export default function App() {
       setCompetitors(getCompetitors());
       setSubmissions(getSubmissions());
     }
+  };
+
+  const handleApproveCompetitor = (id: string) => {
+    approveCompetitor(id);
+    setCompetitors(getCompetitors());
+  };
+
+  const handleDeleteCompetitor = (id: string) => {
+    deleteCompetitor(id);
+    setCompetitors(getCompetitors());
   };
 
   const pendingSubmissionsCount = submissions.filter(s => s.status === 'pending').length;
@@ -152,6 +171,14 @@ export default function App() {
             onViewScreenshot={(url) => setInspectScreenshotUrl(url)}
             isAdminAuthenticated={isAdminAuthenticated}
             setIsAdminAuthenticated={setIsAdminAuthenticated}
+            onApproveCompetitor={handleApproveCompetitor}
+            onDeleteCompetitor={handleDeleteCompetitor}
+            onAddCompetitor={(name, code, contact, avatarUrl, gender) => {
+              const comp = handleRegisterCompetitor(name, code, contact, avatarUrl, gender);
+              if (comp) {
+                handleApproveCompetitor(comp.id);
+              }
+            }}
           />
         )}
 
@@ -170,10 +197,34 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 text-center text-xs text-slate-500 space-y-2">
+      <footer className="border-t border-slate-900 bg-slate-950 py-8 text-center text-xs text-slate-500 space-y-4">
         <p>
           SubReferral • YouTube Referral & Screenshot Verification Platform for <strong className="text-amber-400">100,000 Birr</strong> Subscriber Challenge
         </p>
+
+        {/* Organizer Admin Portal Access in Footer */}
+        <div className="pt-2 flex justify-center">
+          <button
+            onClick={() => {
+              setActiveTab('admin');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all border ${
+              activeTab === 'admin'
+                ? 'bg-red-600/30 text-red-300 border-red-500/50 shadow-lg shadow-red-950/80'
+                : 'bg-slate-900/90 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            <ShieldCheck className={`w-4 h-4 ${pendingSubmissionsCount > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <span>Organizer Admin Portal</span>
+            {pendingSubmissionsCount > 0 && (
+              <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-500 text-slate-950">
+                {pendingSubmissionsCount} Pending
+              </span>
+            )}
+          </button>
+        </div>
+
         <p className="text-[11px] text-slate-600">
           Created for YouTube creators & friends competition • Powered by Google AI Studio
         </p>

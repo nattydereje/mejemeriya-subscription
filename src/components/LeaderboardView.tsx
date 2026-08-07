@@ -20,8 +20,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [timeLeft, setTimeLeft] = useState({ days: 14, hours: 0, minutes: 0, seconds: 0 });
 
+  // Filter only approved competitors for public leaderboard
+  const approvedCompetitors = competitors.filter(c => c.isApproved !== false);
+
   // Sorted competitors by verified count (descending) then pending
-  const sortedCompetitors = [...competitors].sort((a, b) => {
+  const sortedCompetitors = [...approvedCompetitors].sort((a, b) => {
     if (b.verifiedCount !== a.verifiedCount) {
       return b.verifiedCount - a.verifiedCount;
     }

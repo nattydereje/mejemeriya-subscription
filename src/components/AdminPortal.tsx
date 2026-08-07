@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, XCircle, AlertCircle, Eye, RefreshCw, Filter, Sparkles, Trophy, Download, Key, Lock, Unlock, Settings, RotateCcw, UserPlus, Copy, Check, Share2, Send, MessageCircle, FileSpreadsheet, FileJson, FileText, X, CheckSquare, Square } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, AlertCircle, Eye, RefreshCw, Filter, Sparkles, Trophy, Download, Key, Lock, Unlock, Settings, RotateCcw, UserPlus, Copy, Check, Share2, Send, MessageCircle, FileSpreadsheet, FileJson, FileText, X, CheckSquare, Square, Clock, Upload } from 'lucide-react';
 import { ChannelConfig, Competitor, ReferralSubmission, SubmissionStatus } from '../types';
 
 interface AdminPortalProps {
@@ -12,6 +12,9 @@ interface AdminPortalProps {
   onViewScreenshot: (url: string) => void;
   isAdminAuthenticated: boolean;
   setIsAdminAuthenticated: (val: boolean) => void;
+  onApproveCompetitor?: (id: string) => void;
+  onDeleteCompetitor?: (id: string) => void;
+  onAddCompetitor?: (name: string, code: string, contact: string, avatarUrl?: string, gender?: 'male' | 'female' | 'other') => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -23,7 +26,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onResetData,
   onViewScreenshot,
   isAdminAuthenticated,
-  setIsAdminAuthenticated
+  setIsAdminAuthenticated,
+  onApproveCompetitor,
+  onDeleteCompetitor,
+  onAddCompetitor
 }) => {
   const [passcode, setPasscode] = useState('');
   const [filter, setFilter] = useState<'pending' | 'verified' | 'rejected' | 'all'>('pending');
@@ -32,6 +38,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [compFilter, setCompFilter] = useState<'all' | 'pending' | 'approved'>('all');
+
+  // Add Challenger Modal State
+  const [showAddCompModal, setShowAddCompModal] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addCode, setAddCode] = useState('');
+  const [addContact, setAddContact] = useState('');
+  const [addGender, setAddGender] = useState<'male' | 'female' | 'other'>('male');
+  const [addAvatarUrl, setAddAvatarUrl] = useState<string>('');
+
+  const handleAddChallengerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addName.trim() || !addCode.trim()) {
+      alert('Please enter both Challenger Name and Referral Code.');
+      return;
+    }
+    if (onAddCompetitor) {
+      onAddCompetitor(addName.trim(), addCode.trim(), addContact.trim(), addAvatarUrl, addGender);
+      setAddName('');
+      setAddCode('');
+      setAddContact('');
+      setAddAvatarUrl('');
+      setShowAddCompModal(false);
+      alert(`🎉 Challenger "${addName.trim()}" registered and pre-approved!`);
+    }
+  };
 
   // Bulk Selection State
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<string[]>([]);
@@ -77,14 +109,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [editPrize, setEditPrize] = useState(config.prizeAmount);
   const [editChannelName, setEditChannelName] = useState(config.channelName);
   const [editChannelUrl, setEditChannelUrl] = useState(config.channelUrl);
-  const [editRegistrationClosed, setEditRegistrationClosed] = useState(config.registrationClosed ?? true);
+  const [editRegistrationClosed, setEditRegistrationClosed] = useState(config.registrationClosed ?? false);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === 'admin123' || passcode.trim() === '') {
       setIsAdminAuthenticated(true);
     } else {
-      alert('Incorrect passcode. Default passcode is: admin123');
+      alert('Incorrect passcode.');
     }
   };
 
@@ -235,7 +267,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <div>
               <input
                 type="password"
-                placeholder="Enter Passcode (default: admin123)"
+                placeholder="Enter Admin Passcode"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-center font-mono text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
@@ -250,19 +282,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <span>Unlock Admin Review Portal</span>
             </button>
           </form>
-
-          <div className="pt-2 text-center">
-            <button
-              onClick={() => setIsAdminAuthenticated(true)}
-              className="text-xs text-amber-400 underline font-semibold hover:text-amber-300"
-            >
-              Quick Demo Unlock (Click Here)
-            </button>
-          </div>
         </div>
       </div>
     );
   }
+
+  const pendingCompetitors = competitors.filter(c => c.isApproved === false);
+  const approvedCompetitors = competitors.filter(c => c.isApproved !== false);
+
+  const filteredCompetitorsList = competitors.filter(c => {
+    if (compFilter === 'pending') return c.isApproved === false;
+    if (compFilter === 'approved') return c.isApproved !== false;
+    return true;
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
@@ -375,6 +407,163 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </a>
           </div>
         </div>
+      </div>
+
+      {/* Challenger Registrations & Approvals Panel */}
+      <div className="bg-[#0F1218] border border-slate-800/80 rounded-3xl p-6 space-y-5 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-red-600/20 text-red-400 border border-red-500/30 rounded-2xl">
+              <UserPlus className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <span>Challenger Registrations & Approvals</span>
+                {pendingCompetitors.length > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[11px] font-mono font-black animate-pulse">
+                    {pendingCompetitors.length} Pending
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-400">Review and approve new contestant registrations before they appear on the public leaderboard.</p>
+            </div>
+          </div>
+
+          {/* Filter Pills and Add Challenger Button */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shrink-0">
+              <button
+                onClick={() => setCompFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  compFilter === 'all'
+                    ? 'bg-red-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                All ({competitors.length})
+              </button>
+              <button
+                onClick={() => setCompFilter('pending')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  compFilter === 'pending'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-amber-400 hover:text-amber-300'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pending ({pendingCompetitors.length})</span>
+              </button>
+              <button
+                onClick={() => setCompFilter('approved')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  compFilter === 'approved'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-emerald-400 hover:text-emerald-300'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Approved ({approvedCompetitors.length})</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowAddCompModal(true)}
+              className="px-3.5 py-2 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-red-950/50 transition-all shrink-0"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ Add Challenger</span>
+            </button>
+          </div>
+        </div>
+
+        {filteredCompetitorsList.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 text-xs">
+            No challengers match the selected filter.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredCompetitorsList.map(c => {
+              const isPending = c.isApproved === false;
+
+              return (
+                <div
+                  key={c.id}
+                  className={`bg-slate-900/90 border rounded-2xl p-4 flex flex-col justify-between gap-4 transition-all ${
+                    isPending
+                      ? 'border-amber-500/50 bg-amber-950/10'
+                      : 'border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={c.avatarUrl}
+                        alt={c.name}
+                        className="w-12 h-12 rounded-2xl object-cover border border-slate-700 bg-slate-950"
+                      />
+                      <div>
+                        <h4 className="font-extrabold text-white text-sm flex items-center gap-1.5">
+                          <span>{c.name}</span>
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-mono text-xs text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            {c.referralCode}
+                          </span>
+                          {c.phoneOrTelegram && (
+                            <span className="text-[11px] text-slate-400 truncate max-w-[140px]">
+                              {c.phoneOrTelegram}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      isPending
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    }`}>
+                      {isPending ? 'Pending Approval' : 'Approved'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                    <span className="text-slate-400">
+                      Verified Referrals: <strong className="text-emerald-400 font-bold">{c.verifiedCount}</strong>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {isPending && onApproveCompetitor && (
+                        <button
+                          onClick={() => onApproveCompetitor(c.id)}
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-950"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                      )}
+
+                      {onDeleteCompetitor && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to remove challenger "${c.name}"?`)) {
+                              onDeleteCompetitor(c.id);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-950 hover:bg-red-950 text-slate-400 hover:text-red-400 border border-slate-800 text-xs transition-colors flex items-center gap-1"
+                          title="Remove challenger"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Contest Settings Drawer */}
@@ -862,6 +1051,164 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 Close Report Menu
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Challenger Direct Modal */}
+      {showAddCompModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-md w-full bg-[#0F1218] border border-slate-800 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-red-500" />
+                <h3 className="font-extrabold text-white text-base uppercase tracking-wider">Add & Approve Challenger</h3>
+              </div>
+              <button
+                onClick={() => setShowAddCompModal(false)}
+                className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddChallengerSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Challenger Name / Channel Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Abebe Bikila"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Custom Referral Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ABEBE100K"
+                  value={addCode}
+                  onChange={(e) => setAddCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm font-mono text-amber-300 focus:outline-none focus:border-red-500"
+                />
+                <p className="text-[11px] text-slate-500">Unique alphanumeric code used for referral links.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Contact Phone / Telegram (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. +251 911 22 33 44 or @abebe"
+                  value={addContact}
+                  onChange={(e) => setAddContact(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              {/* Avatar Photo Upload or Gender Selection */}
+              <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                  Avatar / Profile Photo
+                </label>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center gap-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                    {addAvatarUrl ? (
+                      <div className="relative">
+                        <img src={addAvatarUrl} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-amber-500/50" />
+                        <button
+                          type="button"
+                          onClick={() => setAddAvatarUrl('')}
+                          className="absolute -top-1.5 -right-1.5 bg-red-600 text-white p-0.5 rounded-full text-[10px]"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-bold cursor-pointer transition-colors border border-slate-700">
+                        <Upload className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Upload Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                if (evt.target?.result) {
+                                  setAddAvatarUrl(evt.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                    <span className="text-[11px] text-slate-500">Custom photo OR select gender below:</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                    <span className="text-[11px] font-bold text-slate-400 pl-1">Gender:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAddGender('male')}
+                      className={`flex-1 py-1 px-2 rounded-lg text-xs font-bold border ${
+                        addGender === 'male' ? 'bg-blue-600/30 text-blue-300 border-blue-500' : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      Male ♂️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddGender('female')}
+                      className={`flex-1 py-1 px-2 rounded-lg text-xs font-bold border ${
+                        addGender === 'female' ? 'bg-pink-600/30 text-pink-300 border-pink-500' : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      Female ♀️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddGender('other')}
+                      className={`py-1 px-2 rounded-lg text-xs font-bold border ${
+                        addGender === 'other' ? 'bg-purple-600/30 text-purple-300 border-purple-500' : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      ✨
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCompModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-red-950"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Add & Pre-Approve</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

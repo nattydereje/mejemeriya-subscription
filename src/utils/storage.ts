@@ -3,8 +3,8 @@ import { INITIAL_CHANNEL_CONFIG, INITIAL_COMPETITORS, INITIAL_SUBMISSIONS } from
 
 const STORAGE_KEYS = {
   CONFIG: 'subreferral_config',
-  COMPETITORS: 'subreferral_competitors',
-  SUBMISSIONS: 'subreferral_submissions',
+  COMPETITORS: 'subreferral_competitors_v4',
+  SUBMISSIONS: 'subreferral_submissions_v4',
   ADMIN_AUTH: 'subreferral_admin_authenticated'
 };
 
@@ -54,7 +54,13 @@ export const saveSubmissions = (submissions: ReferralSubmission[]) => {
   localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
 };
 
-export const registerCompetitor = (name: string, referralCode: string, phoneOrTelegram?: string): Competitor => {
+export const registerCompetitor = (
+  name: string,
+  referralCode: string,
+  phoneOrTelegram?: string,
+  customAvatarUrl?: string,
+  gender?: 'male' | 'female' | 'other'
+): Competitor => {
   const competitors = getCompetitors();
   
   // Clean referral code
@@ -65,20 +71,49 @@ export const registerCompetitor = (name: string, referralCode: string, phoneOrTe
     return existing;
   }
 
+  // Determine avatar URL based on custom image OR gender
+  let resolvedAvatar = customAvatarUrl;
+
+  if (!resolvedAvatar || resolvedAvatar.trim() === '') {
+    if (gender === 'male') {
+      resolvedAvatar = `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200`;
+    } else if (gender === 'female') {
+      resolvedAvatar = `https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200`;
+    } else {
+      resolvedAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+    }
+  }
+
   const newComp: Competitor = {
     id: `comp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     name,
     referralCode: cleanCode,
-    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+    avatarUrl: resolvedAvatar,
     phoneOrTelegram,
+    gender,
     verifiedCount: 0,
     pendingCount: 0,
-    joinedAt: new Date().toISOString()
+    joinedAt: new Date().toISOString(),
+    isApproved: false
   };
 
   const updated = [newComp, ...competitors];
   saveCompetitors(updated);
   return newComp;
+};
+
+export const approveCompetitor = (id: string): Competitor[] => {
+  const competitors = getCompetitors();
+  const updated = competitors.map(c => c.id === id ? { ...c, isApproved: true } : c);
+  saveCompetitors(updated);
+  return updated;
+};
+
+export const deleteCompetitor = (id: string): Competitor[] => {
+  const competitors = getCompetitors();
+  const updated = competitors.filter(c => c.id !== id);
+  saveCompetitors(updated);
+  return updated;
 };
 
 export const submitReferralProof = (

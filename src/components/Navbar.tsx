@@ -115,31 +115,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Right Actions & Admin Toggle */}
+          {/* Right Actions */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                activeTab === 'admin' || isAdmin
-                  ? 'bg-red-600/20 text-red-300 border-red-500/40 shadow-lg shadow-red-950/50'
-                  : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
-              }`}
-              title="Admin Verification Hub"
-            >
-              <ShieldCheck className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
-              <span className="hidden sm:inline">Verification Hub</span>
-              {pendingCount > 0 && (
-                <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-amber-500 text-slate-950">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-
             <a
               href={config.channelUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors shadow-md shadow-red-900/30"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors shadow-md shadow-red-900/30"
             >
               <Youtube className="w-4 h-4 fill-current" />
               <span>YouTube Channel</span>
@@ -183,13 +165,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('admin')}
-            className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl relative ${
-              activeTab === 'admin' ? 'text-red-400 font-bold' : 'text-slate-400'
+            onClick={() => setActiveTab('rules')}
+            className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl ${
+              activeTab === 'rules' ? 'text-red-400 font-bold' : 'text-slate-400'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Admin ({pendingCount})</span>
+            <HelpCircle className="w-4 h-4" />
+            <span>Rules</span>
           </button>
         </div>
       </div>

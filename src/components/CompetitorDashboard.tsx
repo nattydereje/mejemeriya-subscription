@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Copy, Check, QrCode, Trophy, Users, Sparkles, ExternalLink, MessageCircle, Send, CheckCircle2, Clock, PlusCircle, XCircle, AlertTriangle, Filter, UserCheck, ShieldAlert, TrendingUp, BarChart3, Activity } from 'lucide-react';
+import { Share2, Copy, Check, QrCode, Trophy, Users, Sparkles, ExternalLink, MessageCircle, Send, CheckCircle2, Clock, PlusCircle, XCircle, AlertTriangle, Filter, UserCheck, ShieldAlert, TrendingUp, BarChart3, Activity, Upload, X } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { ChannelConfig, Competitor, ReferralSubmission } from '../types';
 
@@ -7,7 +7,7 @@ interface CompetitorDashboardProps {
   competitors: Competitor[];
   submissions: ReferralSubmission[];
   config: ChannelConfig;
-  onRegister: (name: string, code: string, contact?: string) => Competitor;
+  onRegister: (name: string, code: string, contact?: string, avatarUrl?: string, gender?: 'male' | 'female' | 'other') => Competitor;
   onGoToLeaderboard: () => void;
   autoOpenRegister?: boolean;
 }
@@ -29,6 +29,8 @@ export const CompetitorDashboard: React.FC<CompetitorDashboardProps> = ({
   const [regName, setRegName] = useState('');
   const [regCode, setRegCode] = useState('');
   const [regContact, setRegContact] = useState('');
+  const [regGender, setRegGender] = useState<'male' | 'female' | 'other'>('male');
+  const [regAvatarUrl, setRegAvatarUrl] = useState<string>('');
 
   // Status Filter for referred subscribers table
   const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'rejected' | 'pending'>('all');
@@ -132,12 +134,14 @@ export const CompetitorDashboard: React.FC<CompetitorDashboardProps> = ({
       return;
     }
 
-    const newComp = onRegister(regName.trim(), regCode.trim(), regContact.trim());
+    const newComp = onRegister(regName.trim(), regCode.trim(), regContact.trim(), regAvatarUrl, regGender);
     setSelectedCompId(newComp.id);
     setIsRegistering(false);
     setRegName('');
     setRegCode('');
     setRegContact('');
+    setRegAvatarUrl('');
+    alert('🎉 Registration submitted successfully! Your account is pending admin approval. Once approved by the contest admin, your referral code will appear on the public leaderboard.');
   };
 
   return (
@@ -162,7 +166,7 @@ export const CompetitorDashboard: React.FC<CompetitorDashboardProps> = ({
               >
                 {competitors.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.referralCode})
+                    {c.name} ({c.referralCode}) {c.isApproved === false ? '⏳ [Pending Approval]' : ''}
                   </option>
                 ))}
               </select>
@@ -195,6 +199,23 @@ export const CompetitorDashboard: React.FC<CompetitorDashboardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Pending Admin Approval Banner */}
+      {currentCompetitor && currentCompetitor.isApproved === false && !isRegistering && (
+        <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-5 flex items-start gap-4 text-amber-300 shadow-xl">
+          <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30 shrink-0 mt-0.5">
+            <Clock className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-black text-sm uppercase tracking-wider text-amber-400">
+              Registration Pending Admin Approval
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Your challenger account (<strong className="text-amber-300">{currentCompetitor.name}</strong> • code: <strong className="font-mono text-amber-400">{currentCompetitor.referralCode}</strong>) has been submitted. Once an organizer admin approves your profile, your referral code will appear on the public leaderboard.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Join Challenge Form Modal/Card */}
       {isRegistering && (
@@ -279,6 +300,98 @@ export const CompetitorDashboard: React.FC<CompetitorDashboardProps> = ({
                   onChange={(e) => setRegContact(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
                 />
+              </div>
+
+              {/* Profile Avatar / Gender Selection */}
+              <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <label className="block text-xs font-bold text-slate-200">
+                  Profile Picture & Avatar Customization
+                </label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Option 1: Upload Custom Photo */}
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-400 block">Upload Profile Picture</span>
+                    <div className="flex items-center gap-3">
+                      {regAvatarUrl ? (
+                        <div className="relative">
+                          <img src={regAvatarUrl} alt="Preview" className="w-12 h-12 rounded-xl object-cover border-2 border-red-500/60 shadow-md" />
+                          <button
+                            type="button"
+                            onClick={() => setRegAvatarUrl('')}
+                            className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white p-0.5 rounded-full shadow"
+                            title="Remove picture"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-colors border border-slate-700">
+                          <Upload className="w-4 h-4 text-amber-400" />
+                          <span>Choose Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                  if (evt.target?.result) {
+                                    setRegAvatarUrl(evt.target.result as string);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                      <span className="text-[10px] text-slate-500">JPG/PNG photo</span>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Select Gender for Avatar */}
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-400 block">Or Select Gender Avatar</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setRegGender('male')}
+                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+                          regGender === 'male'
+                            ? 'bg-blue-600/30 text-blue-300 border-blue-500/80 shadow-md'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        Male ♂️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegGender('female')}
+                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+                          regGender === 'female'
+                            ? 'bg-pink-600/30 text-pink-300 border-pink-500/80 shadow-md'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        Female ♀️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegGender('other')}
+                        className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+                          regGender === 'other'
+                            ? 'bg-purple-600/30 text-purple-300 border-purple-500/80 shadow-md'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        ✨
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <button

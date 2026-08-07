@@ -6,9 +6,11 @@ export interface Competitor {
   referralCode: string;
   avatarUrl: string;
   phoneOrTelegram?: string;
+  gender?: 'male' | 'female' | 'other';
   verifiedCount: number;
   pendingCount: number;
   joinedAt: string;
+  isApproved?: boolean;
 }
 
 export interface ReferralSubmission {
