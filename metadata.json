@@ -1,0 +1,6 @@
+{
+  "name": "SubReferral - 100,000 ETB YouTube Contest",
+  "description": "Referral tracking and screenshot verification platform for YouTube subscriber competition with live leaderboard and admin approval.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
